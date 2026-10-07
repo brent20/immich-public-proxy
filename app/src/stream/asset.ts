@@ -10,6 +10,7 @@ import { ImageSize, IncomingShareRequest } from '../types'
 import { attachmentDisposition, enrichFromHeaders, findPositionInShare, getFilename, servedMimeFrom } from '../gallery/filename'
 import { isVideoAsset, resolveDownloadEndpoint, resolveImageEndpoint } from '../gallery/sizing'
 import { pipeline } from 'stream/promises'
+import { createJpegRewriter, isJpeg, loadDownloadMetadataOptions } from './jpegRewriter'
 
 /**
  * Stream an asset from Immich back to the client.
@@ -88,6 +89,11 @@ export async function assetBuffer (req: IncomingShareRequest, res: Response, ass
     return
   }
 
+  // Downloads of JPEGs get their metadata rewritten (ipp.downloadMetadata). Built before any header is
+  // sent so a bad config fails as an ordinary error rather than half a response.
+  const metadataOptions = attachment && !req.range ? loadDownloadMetadataOptions() : null
+  const rewriter = metadataOptions && isJpeg(data.headers.get('content-type')) ? createJpegRewriter(metadataOptions) : null
+
   // An original can be any format Immich accepts, so never let a browser sniff it
   res.setHeader('X-Content-Type-Options', 'nosniff')
   if (attachment) {
@@ -99,6 +105,8 @@ export async function assetBuffer (req: IncomingShareRequest, res: Response, ass
     res.setHeader('Content-Disposition', attachmentDisposition(getFilename(named, servedSize, servedMimeFrom(subpath, data), position)))
   }
   headerList.forEach(header => {
+    // The rewritten file has a different size and content
+    if (rewriter && (header === 'content-length' || header === 'etag')) return
     const value = data.headers.get(header)
     if (value) res.setHeader(header, value)
   })
@@ -118,7 +126,8 @@ export async function assetBuffer (req: IncomingShareRequest, res: Response, ass
   memory ahead of a slow visitor #288.
   */
   try {
-    await pipeline(readableFromWeb(data.body), res)
+    if (rewriter) await pipeline(readableFromWeb(data.body), rewriter, res)
+    else await pipeline(readableFromWeb(data.body), res)
   } catch (e) {
     if (!isClientAbort(e)) {
       log.warn(`Stream from Immich failed for asset ${asset.id}: ${e instanceof Error ? e.message : String(e)}`)

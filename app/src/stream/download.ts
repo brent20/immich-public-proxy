@@ -1,6 +1,8 @@
 import { Asset, log, readableFromWeb, respondToInvalidRequest, sanitize, SharedLink, title } from '@ipp/core'
 import { assetFetchUrl, authHeadersForAsset } from '../immich'
 import { Response } from 'express-serve-static-core'
+import { pipeline } from 'stream'
+import { createJpegRewriter, isJpeg, loadDownloadMetadataOptions, RewriteOptions } from './jpegRewriter'
 import archiver, { Archiver } from 'archiver'
 import { resolveDownloadEndpoint, ImageEndpoint } from '../gallery/sizing'
 import { AssetPosition, attachmentDisposition, enrichFromHeaders, findPositionInShare, getFilename, servedMimeFrom } from '../gallery/filename'
@@ -58,6 +60,7 @@ type FetchOutcome = FetchedAsset | { failure: Failure } | null
  */
 export async function downloadAssets (res: Response, share: SharedLink, assets: Asset[]) {
   const archive = archiver('zip', { store: true })
+  const metadataOptions = loadDownloadMetadataOptions()
   // Without a listener, an archiver 'error' emission would crash the process.
   archive.on('error', e => log(`Archiver error for share ${share.key}: ${e.message}`))
 
@@ -95,7 +98,7 @@ export async function downloadAssets (res: Response, share: SharedLink, assets: 
       startZipResponse(res, share, archive)
       piped = true
     }
-    const entry = await appendEntry(archive, fetched)
+    const entry = await appendEntry(archive, fetched, metadataOptions)
     if (entry !== 'done') {
       if (clientGone) break
       controller.abort()
@@ -143,14 +146,20 @@ function startZipResponse (res: Response, share: SharedLink, archive: Archiver) 
  * the download itself. The body listener covers the tick between append()
  * and archiver attaching its own handler, when an unhandled 'error' would
  * otherwise crash the process.
+ *
+ * JPEGs pass through the metadata rewriter when ipp.downloadMetadata is on.
  */
-function appendEntry (archive: Archiver, fetched: FetchedAsset): Promise<'done' | { error: unknown }> {
+function appendEntry (archive: Archiver, fetched: FetchedAsset, metadataOptions: RewriteOptions | null): Promise<'done' | { error: unknown }> {
   return new Promise(resolve => {
     if (!fetched.response.body) {
       resolve({ error: new Error('Upstream response has no body') })
       return
     }
-    const body = readableFromWeb(fetched.response.body)
+    const source = readableFromWeb(fetched.response.body)
+    // pipeline() destroys the rewriter with the source's error, so a failure on either side reaches onError
+    const body = metadataOptions && isJpeg(fetched.response.headers.get('content-type'))
+      ? pipeline(source, createJpegRewriter(metadataOptions), () => {})
+      : source
     const cleanup = () => {
       archive.off('entry', onEntry)
       archive.off('error', onError)

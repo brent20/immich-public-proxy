@@ -10,6 +10,7 @@ Connection settings (the Immich URL, public URL, port and config file location) 
 - [Gallery](/config/gallery) - how the gallery page is rendered.
 - [Lightbox](/config/lightbox) - the PhotoSwipe image viewer.
 - [Metadata](/config/metadata) - description / EXIF / location reveal controls.
+- [Download metadata](/config/download-metadata) - strip camera and location data from downloaded JPEGs and write your creator and copyright information.
 - [Error responses](/config/error-responses) - customise what invalid requests return.
 - [Upload service](/config/upload-service) - the optional container that lets visitors send photos back.
 - [Renamed config keys](/config/upgrading) - old keys and their current names.

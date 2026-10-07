@@ -39,6 +39,31 @@
         "webLink": true
       }
     },
+    "downloadMetadata": {
+      "enabled": false,
+      "exif": {
+        "keep": ["orientation"]
+      },
+      "iptc": {
+        "creator": "",
+        "creatorJobTitle": "",
+        "creatorAddress": "",
+        "creatorCity": "",
+        "creatorRegion": "",
+        "creatorPostalCode": "",
+        "creatorCountry": "",
+        "creatorPhone": "",
+        "creatorEmail": "",
+        "creatorWebsite": "",
+        "copyrightNotice": "",
+        "copyrightStatus": "unknown",
+        "copyrightOwner": "",
+        "rightsUsageTerms": "",
+        "webStatement": "",
+        "credit": "",
+        "source": ""
+      }
+    },
     "customInvalidResponse": false,
     "gallery": {
       "singleImage": false,
