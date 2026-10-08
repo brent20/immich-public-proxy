@@ -60,7 +60,7 @@ type FetchOutcome = FetchedAsset | { failure: Failure } | null
  */
 export async function downloadAssets (res: Response, share: SharedLink, assets: Asset[]) {
   const archive = archiver('zip', { store: true })
-  const metadataOptions = loadDownloadMetadataOptions()
+  const metadataOptions = loadDownloadMetadataOptions(share)
   // Without a listener, an archiver 'error' emission would crash the process.
   archive.on('error', e => log(`Archiver error for share ${share.key}: ${e.message}`))
 

@@ -20,14 +20,20 @@ const STATUSES: CopyrightStatus[] = ['copyrighted', 'public-domain', 'unknown']
 /**
  * Read `ipp.downloadMetadata`. Returns null when the feature is off. Unknown
  * names in `exif.keep` are ignored, which fails towards stripping.
+ *
+ * A share with Immich's "Show metadata" switched off keeps no original EXIF at
+ * all, whatever `exif.keep` says, matching how that toggle overrides
+ * `ipp.showMetadata.*` everywhere else. The copyright fields are still written.
  */
-export function loadDownloadMetadataOptions (): RewriteOptions | null {
+export function loadDownloadMetadataOptions (share?: { showMetadata?: boolean }): RewriteOptions | null {
   if (getConfigOption('ipp.downloadMetadata.enabled', false) !== true) return null
 
   const keep = getConfigOption('ipp.downloadMetadata.exif.keep', ['orientation'])
-  const keepExif = keep === 'all'
-    ? 'all'
-    : new Set(Array.isArray(keep) ? keep.filter(k => typeof k === 'string' && (k === 'gps' || KEEPABLE_EXIF[k])) as string[] : [])
+  const keepExif = share?.showMetadata === false
+    ? new Set<string>()
+    : keep === 'all'
+      ? 'all'
+      : new Set(Array.isArray(keep) ? keep.filter(k => typeof k === 'string' && (k === 'gps' || KEEPABLE_EXIF[k])) as string[] : [])
 
   const rawCreator = getConfigOption('ipp.downloadMetadata.iptc.creator')
   const creator = (Array.isArray(rawCreator) ? rawCreator : [rawCreator])

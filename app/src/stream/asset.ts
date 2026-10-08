@@ -91,7 +91,7 @@ export async function assetBuffer (req: IncomingShareRequest, res: Response, ass
 
   // Downloads of JPEGs get their metadata rewritten (ipp.downloadMetadata). Built before any header is
   // sent so a bad config fails as an ordinary error rather than half a response.
-  const metadataOptions = attachment && !req.range ? loadDownloadMetadataOptions() : null
+  const metadataOptions = attachment && !req.range ? loadDownloadMetadataOptions(share) : null
   const rewriter = metadataOptions && isJpeg(data.headers.get('content-type')) ? createJpegRewriter(metadataOptions) : null
 
   // An original can be any format Immich accepts, so never let a browser sniff it

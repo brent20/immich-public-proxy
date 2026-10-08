@@ -32,6 +32,7 @@ Strip everything except the image orientation, and mark every downloaded JPEG as
 - The image itself is not re-encoded, so there is no quality loss, and the file is streamed rather than held in memory.
 - Metadata is replaced by an allowlist. Of the original file, only the JFIF header, the ICC colour profile and Adobe colour markers survive. Every other embedded block is discarded, including the original XMP and IPTC, vendor blocks and comments, and anything stored after the end of the image. Only the EXIF tags you list in `exif.keep` are carried over.
 - The creator and rights fields are written to EXIF (`Artist`, `Copyright`), to XMP and to the legacy IPTC-IIM block, so both modern and older software can read them.
+- If the share has **Show metadata** switched off in Immich, no original EXIF is kept, whatever `exif.keep` says. Your creator and copyright fields are still written.
 - A JPEG that is damaged enough to fail parsing fails the download. It is never served with its original metadata.
 - The file's size and `ETag` change, so IPP stops sending `Content-Length` and `ETag` for these downloads.
 

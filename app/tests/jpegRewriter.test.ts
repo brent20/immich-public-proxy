@@ -250,6 +250,17 @@ describe('loadDownloadMetadataOptions', () => {
     expect(loadDownloadMetadataOptions()!.keepExif).toBe('all')
   })
 
+  it('keeps no original EXIF when the share has "Show metadata" off, but still writes the copyright fields', () => {
+    setConfig({ ipp: { downloadMetadata: { enabled: true, exif: { keep: ['make', 'gps'] }, iptc: { creator: 'Brent' } } } })
+    const off = loadDownloadMetadataOptions({ showMetadata: false })!
+    expect([...(off.keepExif as Set<string>)]).toEqual([])
+    expect(off.fields.creator).toEqual(['Brent'])
+    expect([...(loadDownloadMetadataOptions({ showMetadata: true })!.keepExif as Set<string>)].sort()).toEqual(['gps', 'make'])
+    expect([...(loadDownloadMetadataOptions({})!.keepExif as Set<string>)].sort()).toEqual(['gps', 'make'])
+    setConfig({ ipp: { downloadMetadata: { enabled: true, exif: { keep: 'all' } } } })
+    expect([...(loadDownloadMetadataOptions({ showMetadata: false })!.keepExif as Set<string>)]).toEqual([])
+  })
+
   it('only turns on for a literal true', () => {
     setConfig({ ipp: { downloadMetadata: { enabled: 'yes' } } })
     expect(loadDownloadMetadataOptions()).toBeNull()
